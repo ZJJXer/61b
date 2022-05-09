@@ -1,158 +1,151 @@
+/**
+ * Deque implemented by array.
+ */
 public class ArrayDeque<T> {
+
     private T[] items;
-    private int size;
-    private int nextFirst;
-    private int nextLast;
-    private final int INITIAL_CAPACITY = 8;
+    private int left;
+    private int right;
+    private int capacity = 8;
 
     public ArrayDeque() {
-        items = (T[]) new Object[INITIAL_CAPACITY];
-        size = 0;
-        nextFirst = 0;
-        nextLast = 1;
-    }
-
-    public int size() {
-        return size;
-    }
-
-    public boolean isEmpty() {
-        return (size == 0 ? true : false);
-    }
-
-    public int minusOne(int index) {
-        return Math.floorMod(index-1, items.length);
-    }
-
-
-    public int plusOne(int index) {
-        return Math.floorMod(index+1, items.length);
-    }
-
-    public int plusOne(int index, int length) {
-        return Math.floorMod(index+1, length);
-    }
-
-    /**
-     *  invariants:
-     *      设计resize()方法，将在增加ArrayDeaue实例内存的方法中调用
-     *      内部判断内存满则调用expand()增加内存
-     *        如果内存过小则调用reduce()减小内存
-     **/
-
-    private void resize() {
-        if (size == items.length) {
-            expand();
-        }
-        if (size < items.length / 4 && items.length > 8) {
-            reduce();
-        }
-    }
-
-    private void expand() {
-        resizeHelper(items.length * 2);
-    }
-
-    private void reduce() {
-        resizeHelper(items.length / 2);
-    }
-
-    private void resizeHelper(int capacity) {
-        T[] temp = items;
-        int begin = plusOne(nextFirst);
-        int end = minusOne(nextLast);
         items = (T[]) new Object[capacity];
-        nextFirst = 0;
-        nextLast = 1;
-        for (int i=begin; i != end; i = plusOne(i, temp.length)) {
-            items[nextLast] = temp[i];
-            nextLast = plusOne(nextLast);
+        left = right = 0;
+    }
+
+    /** Adds an item of type T to the front of the deque. */
+    public void addFirst(T item) {
+        if (isFull()) {
+            resize((int) (capacity * 1.5));
         }
-        items[nextLast] = temp[end];
-        nextLast = plusOne(nextLast);
+        left = (left - 1 + capacity) % capacity;
+        items[left] = item;
+    }
+
+    /** Adds an item of type T to the back of the deque. */
+    public void addLast(T item) {
+        if (isFull()) {
+            resize((int) (capacity * 1.5));
+        }
+        items[right] = item;
+        right = (right + 1 + capacity) % capacity;
+    }
+
+    /** Returns true if deque is empty, false otherwise. */
+    public boolean isEmpty() {
+        return left == right;
+    }
+
+    /** Returns the number of items in the deque. */
+    public int size() {
+        return (right - left + capacity) % capacity;
+    }
+
+    /** Prints the items in the deque from first to last, separated by a space. */
+    public void printDeque() {
+        if (left < right) {
+            for (int i = left; i < right; i++) {
+                if (i == right - 1) {
+                    System.out.println(items[i]);
+                    break;
+                }
+                System.out.print(items[i] + " ");
+            }
+        } else if (left > right) {
+            for (int i = left; i < capacity; i++) {
+                System.out.print(items[i] + " ");
+            }
+            for (int i = 0; i < right; i++) {
+                if (i == right - 1) {
+                    System.out.println(items[i]);
+                    break;
+                }
+                System.out.print(items[i] + " ");
+            }
+        }
     }
 
     /**
-     *  invariants:
-     *      通过minusOne()方法确定nextFirst，(nextFirst-1)%items.length
-     *      即nextFirst的下一个位置
-     *      eg. (0 - 1) % 8 = 7
-     *
-     * */
-    public void addFirst(T item) {
-        // resize();
-        items[nextFirst] = item;
-        nextFirst = minusOne(nextFirst);
-        size++;
-    }
-
-    public T getFirst() {
-        return items[plusOne(nextFirst)];
-    }
-
+     * Removes and returns the item at the front of the deque. If no such item
+     * exists, returns null.
+     */
     public T removeFirst() {
-        resize();
-        T res = getFirst();
-        nextFirst = plusOne(nextFirst);
-        items[nextFirst] = null;
-        size--;
-        return res;
-    }
-
-    public void addLast(T item) {
-        resize();
-        items[nextLast] = item;
-        nextLast = plusOne(nextLast);
-        size++;
-    }
-
-    public T getLast() {
-        return items[minusOne(nextLast)];
-    }
-
-    public T removeLast() {
-        resize();
-        T res = getLast();
-        nextLast = minusOne(nextLast);
-        items[nextLast] = null;
-        size--;
-        return res;
-    }
-
-    public void printDeque() {
-        for (int index = plusOne(nextFirst); index != nextLast; index = plusOne(index)) {
-            System.out.print(items[index]);
-            System.out.print(" ");
-        }
-        System.out.println();
-    }
-
-    public T get(int index) {
-        if (index < 0 || index >= size) {
+        if (isEmpty()) {
             return null;
         }
-        index = Math.floorMod(plusOne(nextFirst) + index, items.length);
-        return items[index];
+        T res = items[left];
+        left = (left + 1) % capacity;
+        if (isLowUsageRate()) {
+            resize((int) (capacity * 0.5));
+        }
+        return res;
     }
 
-
-
-    /*
-    public static void main(String[] args) {
-
-        ArrayDeque<Integer> aq = new ArrayDeque<Integer>();
-        for (int i = 0; i < 100; i++) {
-            aq.addLast(i);
+    /**
+     * Removes and returns the item at the back of the deque. If no such item
+     * exists, returns null.
+     */
+    public T removeLast() {
+        if (isEmpty()) {
+            return null;
         }
-
-        aq.printDeque();
-
-        for (int i = 0; i < 98; i++) {
-            aq.removeFirst();
+        right = (right - 1 + capacity) % capacity;
+        T res = items[right];
+        if (isLowUsageRate()) {
+            resize((int) (capacity * 0.5));
         }
-
-        aq.printDeque();
-        System.out.println(aq.get(0));
+        return res;
     }
-    */
+
+    /**
+     * Gets the item at the given index, where 0 is the front, 1 is the next item,
+     * and so forth. If no such item exists, returns null. Must not alter the deque!
+     */
+    public T get(int index) {
+        if (index < 0 || index >= size() || isEmpty()) {
+            return null;
+        }
+        if (left < right) {
+            return items[index + left];
+        } else if (left > right) {
+            if (index + left < capacity) {
+                return items[index + left];
+            } else {
+                return items[(index + left) % capacity];
+            }
+        }
+        return null;
+    }
+
+    private boolean isFull() {
+        return size() == capacity - 1;
+    }
+
+    private boolean isLowUsageRate() {
+        return capacity >= 16 && size() / (double) capacity < 0.25;
+    }
+
+    private void resize(int newSize) {
+        T[] newArray = (T[]) new Object[newSize];
+
+        int size = size();
+        if (left < right) {
+            for (int i = left, j = 0; i < right && j < size; i++, j++) {
+                newArray[j] = items[i];
+            }
+        } else if (left > right) {
+            int j = 0;
+            for (int i = left; j < capacity - left; i++, j++) {
+                newArray[j] = items[i];
+            }
+            for (int i = 0; j < size; i++, j++) {
+                newArray[j] = items[i];
+            }
+        }
+        left = 0;
+        right = size;
+        items = newArray;
+        capacity = newSize;
+    }
+
 }
